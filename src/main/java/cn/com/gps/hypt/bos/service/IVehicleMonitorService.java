@@ -15,6 +15,27 @@ public interface IVehicleMonitorService {
 	 * @param params
 	 * @return
 	 */
-	JSONArray queryVehicleLocation(JSONObject params);
+	JSONArray queryVehicles(JSONObject params);
+	
+	/**
+	 * 查询车辆位置信息
+	 * @param vehicleId
+	 * @param updateTime
+	 * @return
+	 */
+	JSONObject queryRealLocation(int vehicleId,long updateTime);
+	
+	/**
+	 * 查询车辆轨迹
+	 * @return
+	 */
+	JSONArray queryTrack();
+	
+	/**
+	 * 根据ID查询轨迹点
+	 * @param tripId
+	 * @return
+	 */
+	String queryTripById(int tripId);
 
 }

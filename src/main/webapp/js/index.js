@@ -20,7 +20,7 @@ var _menus = {
 				"menuid": "16",
 				"menuname": "历史轨迹",
 				"icon": "icon-log",
-				"url": "demo1.html"
+				"url": "./views/monitor/track.jsp"
 			}]
 		},
 		{

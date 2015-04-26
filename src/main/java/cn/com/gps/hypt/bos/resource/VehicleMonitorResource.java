@@ -78,7 +78,7 @@ public class VehicleMonitorResource {
 	 */
 	@RequestMapping(value="allVehicles" ,method=RequestMethod.POST,consumes="application/json")
 	public @ResponseBody String getAllGps(@RequestBody JSONObject params){
-	    JSONArray array = vehicleMonitorService.queryVehicleLocation(params);
+	    JSONArray array = vehicleMonitorService.queryVehicles(params);
 	    
 	    return array.toString();
 	}
@@ -91,18 +91,9 @@ public class VehicleMonitorResource {
 	 */
 	@RequestMapping(value = "location",method=RequestMethod.GET)
 	public @ResponseBody String getVehicleGps(@RequestParam("vid")int vehicleId,@RequestParam("updated") long updated){
-		JSONObject json = dataAcquireCacheManager.getGps(vehicleId);
-		System.out.println(".");
-		if(json != null && json.optLong("updated") > updated){
-		    JSONObject j = new JSONObject();
-		    j.put("longitude", json.get("longitude"));
-		    j.put("latitude", json.get("latitude"));
-		    j.put("speed", json.get("speed"));
-		    j.put("updated", json.get("updated"));
-		    json.put("position", j);
-			return json.toString();
-		}
-		return "{}";
+		JSONObject result = vehicleMonitorService.queryRealLocation(vehicleId, updated);
+		
+		return result.toString();
 	}
 	
 	/**
@@ -120,21 +111,21 @@ public class VehicleMonitorResource {
 		return "没有车辆运行状态";
 	}
 	
+	@RequestMapping("track")
+	public @ResponseBody String getTrack() {
+		JSONArray array = vehicleMonitorService.queryTrack();
+		
+		return array.toString();
+	}
+	
 	/**
 	 * 查询车辆当前轨迹点
 	 * @param vehicleId
 	 * @return
 	 */
 	@RequestMapping(value="trip",method=RequestMethod.GET)
-	public @ResponseBody String getTrip(@RequestParam("vid")int vehicleId){
-	    TripExample example = new TripExample();
-	    example.or().andVehicleIdEqualTo(vehicleId);
-	    List<Trip> list = tripMapper.selectByExampleWithBLOBs(example);
-	    
-		if(list != null && !list.isEmpty()){
-			return list.get(0).getGps();
-		}
-		return "没有轨迹点";
+	public @ResponseBody String getTrip(@RequestParam("tripId")int tripId){
+		return vehicleMonitorService.queryTripById(tripId);
 	}
 	
 	/**

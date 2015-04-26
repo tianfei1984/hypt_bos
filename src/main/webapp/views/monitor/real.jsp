@@ -61,100 +61,35 @@ body {
 	var mapObj = null;
 	var interval; //定时器
 	realPosition = null;// 跟踪对象
-	var cmarkers = [];
+	var cmarkers = [];//聚合对象 
 
 $(document).ready(function(){
 	//地图对象
     //var position=new AMap.LngLat(items[0].longitude, items[0].latitude);
     mapObj=new AMap.Map("container",{
         view: new AMap.View2D({//创建地图二维视口
-        zoom:14, //设置地图缩放级别
-       rotation:0 //设置地图旋转角度
+        resizeEnable: true,
        }),lang:"zh_cn"//设置地图语言类型，默认：中文简体
     });
+  	//地图中添加地图操作ToolBar插件
+	mapObj.plugin(['AMap.ToolBar'],function(){
+		//设置地位标记为自定义标记
+		var toolBar = new AMap.ToolBar(); 
+		mapObj.addControl(toolBar);		
+	});	
 	// 查询 车辆列表
 	doSearch(0, '');
-	//开启实时跟踪
-	var startRealPosition = function() {
-        var vehicleId = 1,
-        data = vehicleArr[vehicleId];
-        // test跟踪
-            // test跟踪
-            var opts = {
-                ajaxOpts: {
-                    url: '/hypt/ws/0.1/monitor/location',
-                    async: true,
-                    dataType : 'JSON',
-                    cache: false,
-                    data: {
-                        updated: data.updated,
-                        vid: vehicleId
-                    },
-                    preQuery: function(r) {
-                        if(r && r.position && r.position.updated !== '') {
-                            this.data.updated = r.position.updated;
-                        }
-                    },
-                    preProcess: function(r) {
-                        if(r.position && !$.isEmptyObject(r.position)) {
-                           // $.extend(data,r);
-                            //$.extend(r,data);
-                            return {lng: r.position.longitude,lat: r.position.latitude};
-                        }
-                        return null;
-                    },
-                    success: function(r) {
-						//$('.bottom-wrap[data-form=control-details]',wraper).trigger('initDetails',[r]);
-					},
-                    error: function(xhr) {
-                        var result = eval('(' + xhr.responseText + ')');
-                        $.jRadShowMSG({message: result[0].message, level: 'error'});
-                    }
-                },
-                id: vehicleId,
-                marker: markers[vehicleId],
-                markerOpts: {
-                    //markerContent: '<div class="map-marker-licensePlate"><div class="car"></div></div>',
-                    // offset: new AMap.Pixel(-35, -16),
-                    autoRotation: true
-                },
-                timeout:3000,
-                autoPan: true,
-                recover: function(vehicleMarker) {
-                	alert('recover');
-                }
-            };
-            realPosition = new AMap.RealPosition(mapObj, opts);
-    };
-    
-    // 停止跟踪
-    var stopRealPosition = function() {
-        if(realPosition && realPosition instanceof AMap.RealPosition) {
-            realPosition.destroy();
-        }
-        // 清空跟踪车辆对象
-        //$('a[data-opt="vehicle-position"]',wraper).text('跟踪模式');
-        realPosition = null, delete realPosition;
-        intervalVehicleId = null, delete intervalVehicleId;
-    };
-    
-	$("#start").click(function(){
-	    //interval = setInterval(startRealPosition,"3000"); 
-		startRealPosition();
-	});
-	$("#stop").click(function(){
-		alert(1);
-		clearTimeout(interval);
-		stopRealPosition();
-	});
 });
 //查询车辆
 function doSearch(type,content){
+	// 清空地图上的覆盖物
+	mapObj.clearMap();
+	$('#vehicleList').empty();
 	$.ajax({
 	       type: 'post',
 	       url: '/hypt_bos/ws/0.1/monitor/allVehicles',
 	       async: false,
-	       data: JSON.stringify({a:1}),
+	       data: JSON.stringify({licensePlate:content}),
 	       dataType : 'JSON',
 	       cache: false,
 	       contentType: 'application/json;charset=utf-8',
@@ -162,14 +97,15 @@ function doSearch(type,content){
 	    	   $.each(items, function(key, item) {
 	    		   vehicleArr[item.vid] = item;
 	    		  // 构建车辆列表
-	    		  $('#vehicleList').append('<li>'+item.licensePlate+'</li>');
-	    		  
-				  	    		  
+	    		  var v = '<li>'+item.licensePlate+' <div style="display: inline;"> <a href="javascript:vehLocation('+item.vid+');" alt="车辆定位" title="车辆定位"><img src="<c:url value="/images/3.png"  />" style="height:16px;weight:16px;"></a>'
+	    		  v += ' <a href="javascript:startRealPosition('+item.vid+');" alt="车辆跟踪" title="车辆跟踪"><img src="<c:url value="/images/car_03.png"  />" style="height:16px;weight:16px;"></a></div></li>';
+	    		  $('#vehicleList').append(v);
 	              var marker = new AMap.Marker(
 	                  {
 	                      position : new AMap.LngLat(item.longitude, item.latitude),//基点位置                 
 	                      offset : new AMap.Pixel(-14, -34),//相对于基点的偏移位置                 
-	                      icon : "http://code.mapabc.com/images/car_03.png"
+	                     // icon : "http://code.mapabc.com/images/car_03.png"
+	                      icon : "http://webapi.amap.com/images/3.png"
 	                  });
 	               marker.setMap(mapObj);
 	               var info = [];                 
@@ -186,17 +122,89 @@ function doSearch(type,content){
 	              AMap.event.addListener(marker,"click",function(e){                 
 	                    inforWindow.open(mapObj,marker.getPosition());                 
 	              }); 
-	              markers[item.vid] = marker;
+	             markers[item.vid] = marker;
+	             cmarkers.push(marker);
 	    	   });
 	    	   //点聚合
 			   var cluster;
 	    	   mapObj.plugin(["AMap.MarkerClusterer"],function(){
-	   			cluster = new AMap.MarkerClusterer(mapObj,markers);
+	   				cluster = new AMap.MarkerClusterer(mapObj,cmarkers);
 	   		   });
 	      }
 	
 	});
 }
+//车辆定位
+function vehLocation(vid){
+	var marker = markers[vid];
+	mapObj.setZoom(14);
+	// 精确定位至车辆位置 
+	mapObj.setCenter(marker.getPosition());
+}
+//开启实时跟踪
+function startRealPosition(vehicleId) {
+	intervalVehicleId = vehicleId;
+    data = vehicleArr[vehicleId];
+    // test跟踪
+        // test跟踪
+        var opts = {
+            ajaxOpts: {
+                url: '/hypt/ws/0.1/monitor/location',
+                async: true,
+                dataType : 'JSON',
+                cache: false,
+                data: {
+                    updated: data.updated,
+                    vid: vehicleId
+                },
+                preQuery: function(r) {
+                    if(r && r.position && r.position.updated !== '') {
+                        this.data.updated = r.position.updated;
+                    }
+                },
+                preProcess: function(r) {
+                    if(r.position && !$.isEmptyObject(r.position)) {
+                       // $.extend(data,r);
+                        //$.extend(r,data);
+                        return {lng: r.position.longitude,lat: r.position.latitude};
+                    }
+                    return null;
+                },
+                success: function(r) {
+					//$('.bottom-wrap[data-form=control-details]',wraper).trigger('initDetails',[r]);
+				},
+                error: function(xhr) {
+                    var result = eval('(' + xhr.responseText + ')');
+                    $.jRadShowMSG({message: result[0].message, level: 'error'});
+                }
+            },
+            id: vehicleId,
+            marker: markers[vehicleId],
+            markerOpts: {
+                //markerContent: '<div class="map-marker-licensePlate"><div class="car"></div></div>',
+                // offset: new AMap.Pixel(-35, -16),
+                autoRotation: true
+            },
+            timeout:3000,
+            autoPan: true,
+            recover: function(vehicleMarker) {
+            	alert('recover');
+            }
+        };
+        realPosition = new AMap.RealPosition(mapObj, opts);
+};
+
+// 停止跟踪
+function stopRealPosition() {
+    if(realPosition && realPosition instanceof AMap.RealPosition) {
+        realPosition.destroy();
+    }
+    // 清空跟踪车辆对象
+    //$('a[data-opt="vehicle-position"]',wraper).text('跟踪模式');
+    realPosition = null, delete realPosition;
+    intervalVehicleId = null, delete intervalVehicleId;
+};
+
 </script>
 <script type="text/javascript" src="<c:url value="/easyui/jquery.easyui.min.js" />"></script>
 </html>
