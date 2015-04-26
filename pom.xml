@@ -17,6 +17,12 @@
 			<artifactId>hypt_db</artifactId>
 			<version>0.0.1</version>
 		</dependency>
+		<!-- common -->
+		<dependency>
+            <groupId>cn.com.gps.hypt.common</groupId>
+            <artifactId>hypt_common</artifactId>
+            <version>0.0.1</version>
+        </dependency>
 		<!-- Spring -->
 		<dependency>
 			<groupId>org.springframework</groupId>
